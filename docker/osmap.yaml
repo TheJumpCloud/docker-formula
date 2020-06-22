@@ -1,0 +1,10 @@
+# -*- coding: utf-8 -*-
+# vim: ft=yaml
+---
+CentOS:
+  pkgs:
+    - python2-pip
+
+FreeBSD:
+  pkgs:
+    - devel/py-pip

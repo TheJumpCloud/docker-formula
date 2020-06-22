@@ -1,25 +1,32 @@
-{% from "docker/map.jinja" import containers with context %}
+{#- Get the `tplroot` from `tpldir` #}
+{%- set tplroot = tpldir.split('/')[0] %}
+{%- from tplroot ~ "/map.jinja" import containers with context %}
+
+include:
+  - docker
 
 {% for name, container in containers.items() %}
 docker-image-{{ name }}:
   cmd.run:
-    - name: docker pull {{ container.image }}
+    - name: docker pull {{ container.image }} | grep "Image is up to date" >/dev/null 2>&1 || echo "changed=yes comment='Image updated'"
+    - stateful: True
     - require:
       - service: docker-service
 
 {# TODO: SysV init script #}
-{%- set init_system = salt["cmd.run"]("ps -p1 | grep -q systemd && echo systemd || echo upstart") %}
+{# Use grains instead of command to get init system #}
+{%- set init_system = grains['init'] %}
 
 docker-container-startup-config-{{ name }}:
   file.managed:
 {%- if init_system == "systemd" %}
     - name: /etc/systemd/system/docker-{{ name }}.service
-    - source: salt://docker/files/systemd.conf
+    - mode: 644
 {%- elif init_system == "upstart" %}
     - name: /etc/init/docker-{{ name }}.conf
-    - source: salt://docker/files/upstart.conf
-{%- endif %}
     - mode: 700
+{%- endif %}
+    - source: salt://docker/files/service_file.jinja
     - user: root
     - template: jinja
     - defaults:
@@ -33,5 +40,6 @@ docker-container-service-{{ name }}:
     - name: docker-{{ name }}
     - enable: True
     - watch:
+      - cmd: docker-image-{{ name }}
       - file: docker-container-startup-config-{{ name }}
 {% endfor %}

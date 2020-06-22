@@ -1,5 +1,6 @@
-# vim: sts=2 ts=2 sw=2 et ai
-
+# -*- coding: utf-8 -*-
+# vim: ft=yaml
+---
 wheezy:
   kernel:
     pkg:
@@ -9,6 +10,7 @@ wheezy:
       name: deb http://http.debian.net/debian wheezy-backports main
       humanname: Wheezy Backports
       dist: wheezy-backports
+    pkgs: []
 
 jessie:
   kernel:
@@ -19,10 +21,16 @@ jessie:
       name: deb http://http.debian.net/debian jessie-backports main
       humanname: Jessie Backports
       dist: jessie-backports
+    pkgs: []
+
+trusty:
+  kernel:
+    pkgs:
+      - linux-image-extra-virtual
+      - linux-image-extra-{{ grains.kernelrelease }}
 
 precise:
   kernel:
-    pkg:
-      pkgs:
-        - linux-image-generic-lts-raring
-        - linux-headers-generic-lts-raring
+    pkgs:
+      - linux-image-generic-lts-raring
+      - linux-headers-generic-lts-raring

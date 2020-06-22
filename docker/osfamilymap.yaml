@@ -1,0 +1,76 @@
+# -*- coding: utf-8 -*-
+# vim: ft=yaml
+#
+# Setup variables using grains['os_family'] based logic.
+# You just need to add the key:values for an `os_family` that differ
+# from `defaults.yaml`.
+# Only add an `os_family` which is/will be supported by the formula
+#
+# If you do not need to provide defaults via the `os_family` grain,
+# you will need to provide at least an empty dict in this file, e.g.
+# osfamilymap: {}
+---
+{%- if grains.os == 'MacOS' %}
+  {% set macos_user = salt['cmd.run']("stat -f '%Su' /dev/console") %}
+{%- endif %}
+
+Arch:
+  python_package: ~
+  pkgs:
+    - python-docker
+    - python-pip
+    - python2-pip  # see https://github.com/saltstack/salt/issues/48632
+  pkg:
+    name: docker
+    # workaround https://github.com/saltstack-formulas/docker-formula/issues/219
+    allow_updates: false
+    hold: false
+    use_upstream_app: false
+  pip:
+    install_pypi_pip: false
+    upgrade: false
+
+Debian:
+  pkgs:
+    - apt-transport-https
+    - python3-apt
+    - python3-pip
+    - python3-docker
+  repo:
+    url_base: https://download.docker.com/linux/{{ grains['os'] |lower }}
+    key_url: https://download.docker.com/linux/{{ grains['os'] |lower }}/gpg
+    version: {{ grains['oscodename']|lower if 'oscodename' in grains else '' }}
+    file: /etc/apt/sources.list.d/docker.list
+
+RedHat:
+  pkgs:
+    - python3-pip
+    - python3-docker
+  repo:
+    # yamllint disable-line rule:line-length
+    url_base: https://download.docker.com/linux/{{ grains['os'] |lower }}/{{ '' if not 'osmajorrelease' in grains else grains['osmajorrelease'] }}/$basearch/stable/
+    key_url: https://download.docker.com/linux/{{ grains['os'] |lower }}/gpg
+    version: {{ grains['oscodename']|lower if 'oscodename' in grains else '' }}
+    file: /etc/yum.repos.d/docker-ce.repo
+
+Suse:
+  pkg:
+    name: docker
+  pkgs:
+    - python3-pip
+    - python3-docker
+
+MacOS:
+  rootuser: {{ macos_user | d('') }}
+  pkgs:
+    - python3-docker
+  pkg:
+    name: docker              #homebrew
+    # workaround https://github.com/saltstack-formulas/docker-formula/issues/219
+    allow_updates: false
+    hold: false
+    use_upstream_app: true    #docker desktop for mac
+    app:
+      name: Docker
+      source: https://download.docker.com/mac/stable/Docker.dmg
+      source_hash: a55462f153284ff212f8857945a69d4e128afb6753f5572984877f7b6fc3fc25
